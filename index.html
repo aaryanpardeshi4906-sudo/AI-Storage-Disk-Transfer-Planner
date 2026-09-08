@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>AI Storage Disk Transfer Planner</title>
+
+  <style>
+    :root {
+      --ink: #17233c;
+      --muted: #64708a;
+      --navy: #273a75;
+      --purple: #7454c9;
+      --teal: #2eb8aa;
+      --gold: #ffb84f;
+      --bg: #f6f7fc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 5%, #e6ddff 0, transparent 28rem),
+        radial-gradient(circle at 88% 32%, #d8f5ef 0, transparent 24rem),
+        var(--bg);
+    }
+
+    .app {
+      max-width: 1100px;
+      margin: auto;
+      padding: 55px 24px 34px;
+    }
+
+    header {
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto 32px;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 2px;
+      font-weight: bold;
+      color: var(--purple);
+      margin: 0 0 9px;
+    }
+
+    h1 {
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1;
+      margin: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.55;
+      margin: 16px auto 0;
+    }
+
+    .card, .stat, .explain {
+      background: rgba(255,255,255,.88);
+      border: 1px solid rgba(35,55,112,.09);
+      box-shadow: 0 12px 30px rgba(28,43,84,.07);
+    }
+
+    .card {
+      border-radius: 18px;
+      padding: 22px;
+    }
+
+    .card label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 11px;
+    }
+
+    .card label span {
+      font-weight: normal;
+      color: var(--muted);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    input, button {
+      min-height: 44px;
+      border-radius: 10px;
+      font: inherit;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100px;
+      padding: 0 12px;
+      border: 1px solid #cbd1e0;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 0 18px;
+      border: 1px solid #d7dcea;
+      background: white;
+      color: var(--navy);
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .primary {
+      border-color: var(--navy);
+      background: var(--navy);
+      color: white;
+    }
+
+    .quiet { color: var(--muted); }
+
+    .validation {
+      margin: 9px 0 0;
+      color: #bb3042;
+      font-size: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .stat {
+      padding: 17px 20px;
+      border-radius: 14px;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 18px;
+      margin-top: 5px;
+    }
+
+    .storage {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      padding: 28px 0 20px;
+    }
+
+    .peg-card {
+      min-height: 310px;
+      padding: 18px 15px;
+      border-radius: 20px;
+      text-align: center;
+      background: rgba(255,255,255,.76);
+      border: 1px solid rgba(35,55,112,.08);
+    }
+
+    .peg-card h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .peg-card p {
+      margin: 4px 0 10px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .source h2 { color: var(--purple); }
+    .helper h2 { color: var(--teal); }
+    .destination h2 { color: #e69b20; }
+
+    .peg {
+      height: 225px;
+      position: relative;
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      padding-bottom: 13px;
+      background: linear-gradient(transparent 0 91%, #293b76 91% 94%, transparent 94%);
+    }
+
+    .peg::before {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 190px;
+      bottom: 19px;
+      border-radius: 10px 10px 0 0;
+      background: #d4daec;
+      z-index: 0;
+    }
+
+    .disk {
+      height: 25px;
+      max-width: 94%;
+      border-radius: 13px;
+      z-index: 1;
+      box-shadow: inset 0 -3px rgba(0,0,0,.1), 0 3px 7px rgba(39,58,117,.15);
+      transition: all .42s ease;
+    }
+
+    .disk:nth-child(4n+1) { background: #7656c8; }
+    .disk:nth-child(4n+2) { background: #2eb8aa; }
+    .disk:nth-child(4n+3) { background: #ffb84f; }
+    .disk:nth-child(4n) { background: #ed7590; }
+
+    .message {
+      margin: 0 0 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 20px;
+      border-radius: 14px;
+    }
+
+    .message p {
+      margin: 0;
+      font-weight: bold;
+    }
+
+    .spark {
+      color: var(--gold);
+      font-size: 22px;
+    }
+
+    .explain {
+      padding: 32px;
+      border-radius: 20px;
+      display: grid;
+      grid-template-columns: .9fr 2fr;
+      gap: 36px;
+    }
+
+    .explain h2 {
+      margin: 0;
+      line-height: 1.15;
+      font-size: 27px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(2,1fr);
+      gap: 22px;
+    }
+
+    .steps article {
+      position: relative;
+      padding-left: 37px;
+    }
+
+    .steps b {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 25px;
+      height: 25px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #e9e2fb;
+      color: var(--purple);
+    }
+
+    .steps h3 {
+      margin: 2px 0 5px;
+      font-size: 16px;
+    }
+
+    .steps p {
+      color: var(--muted);
+      line-height: 1.45;
+      margin: 0;
+      font-size: 14px;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 0 20px 30px;
+    }
+
+    @media (max-width: 700px) {
+      .app { padding-top: 40px; }
+      .storage { gap: 8px; }
+      .peg-card { padding: 14px 6px; min-height: 260px; }
+      .peg { height: 180px; }
+      .peg::before { height: 150px; }
+      .disk { height: 20px; }
+      .stats, .steps { grid-template-columns: 1fr; }
+      .explain { grid-template-columns: 1fr; gap: 24px; padding: 24px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <header>
+      <p class="eyebrow">CCE PROJECT • ARTIFICIAL INTELLIGENCE</p>
+      <h1>AI Storage Disk Transfer Planner</h1>
+      <p class="subtitle">
+        Watch State Space Search find a safe path for moving every disk
+        from Storage A to Storage C.
+      </p>
+    </header>
+
+    <section class="card">
+      <label for="diskCount">
+        Number of disks <span>(1–8)</span>
+      </label>
+
+      <div class="controls">
+        <input id="diskCount" type="number" min="1" max="8" value="3">
+        <button id="startBtn" class="primary">Start Search</button>
+        <button id="nextBtn" disabled>Next Move</button>
+        <button id="resetBtn" class="quiet">Reset</button>
+      </div>
+
+      <p id="validation" class="validation"></p>
+    </section>
+
+    <section class="stats">
+      <article class="stat">
+        <span>Current State</span>
+        <strong id="stateLabel">Ready to start</strong>
+      </article>
+
+      <article class="stat">
+        <span>Move Number</span>
+        <strong id="moveCount">0 / 0</strong>
+      </article>
+
+      <article class="stat">
+        <span>Total Transfers</span>
+        <strong id="totalTransfers">—</strong>
+      </article>
+    </section>
+
+    <section class="storage">
+      <div class="peg-card source">
+        <h2>Storage A</h2>
+        <p>Source</p>
+        <div class="peg" id="peg-0"></div>
+      </div>
+
+      <div class="peg-card helper">
+        <h2>Storage B</h2>
+        <p>Helper</p>
+        <div class="peg" id="peg-1"></div>
+      </div>
+
+      <div class="peg-card destination">
+        <h2>Storage C</h2>
+        <p>Destination</p>
+        <div class="peg" id="peg-2"></div>
+      </div>
+    </section>
+
+    <section class="card message">
+      <span class="spark">✦</span>
+      <p id="moveMessage">Choose the number of disks, then start the search.</p>
+    </section>
+
+    <section class="explain">
+      <div>
+        <p class="eyebrow">HOW THE AI SEARCH WORKS</p>
+        <h2>It explores states, one safe move at a time.</h2>
+      </div>
+
+      <div class="steps">
+        <article>
+          <b>1</b>
+          <h3>Start State</h3>
+          <p>All disks begin in Storage A. A state means the current disk arrangement.</p>
+        </article>
+
+        <article>
+          <b>2</b>
+          <h3>Queue Search</h3>
+          <p>The program puts states in a queue and checks them in order. This is BFS.</p>
+        </article>
+
+        <article>
+          <b>3</b>
+          <h3>Safe Moves Only</h3>
+          <p>It moves only the top disk, and never puts a larger disk on a smaller one.</p>
+        </article>
+
+        <article>
+          <b>4</b>
+          <h3>Visited States</h3>
+          <p>Already-seen arrangements are remembered, so the search does not repeat them.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>Made for demonstrating State Space Search in your CCE project.</footer>
+
+  <script>
+    // Same logic as the Python code:
+    // State Space Search using BFS, a queue, and visited states.
+
+    const names = ["A", "B", "C"];
+    const $ = id => document.getElementById(id);
+
+    let initialState;
+    let path = [];
+    let step = 0;
+    let diskCount = 3;
+
+    function stateKey(state) {
+      return state.map(peg => peg.join(",")).join("|");
+    }
+
+    function getNextStates(state) {
+      const nextStates = [];
+
+      for (let source = 0; source < 3; source++) {
+        if (state[source].length === 0) continue;
+
+        for (let destination = 0; destination < 3; destination++) {
+          if (source === destination) continue;
+
+          const disk = state[source][state[source].length - 1];
+
+          // A larger disk cannot be placed on a smaller disk
+          if (
+            state[destination].length &&
+            state[destination][state[destination].length - 1] < disk
+          ) {
+            continue;
+          }
+
+          const newState = state.map(peg => [...peg]);
+
+          newState[source].pop();
+          newState[destination].push(disk);
+
+          nextStates.push({
+            state: newState,
+            source: source,
+            destination: destination,
+            disk: disk
+          });
+        }
+      }
+
+      return nextStates;
+    }
+
+    function stateSpaceSearch(n) {
+      const start = [
+        Array.from({ length: n }, (_, i) => n - i),
+        [],
+        []
+      ];
+
+      const goal = [
+        [],
+        [],
+        Array.from({ length: n }, (_, i) => n - i)
+      ];
+
+      const queue = [start];
+      const visited = new Set([stateKey(start)]);
+      const parent = new Map([[stateKey(start), null]]);
+      const move = new Map();
+
+      let head = 0;
+
+      while (head < queue.length) {
+        const currentState = queue[head++];
+
+        if (stateKey(currentState) === stateKey(goal)) {
+          break;
+        }
+
+        for (const candidate of getNextStates(currentState)) {
+          const nextStateKey = stateKey(candidate.state);
+
+          if (!visited.has(nextStateKey)) {
+            visited.add(nextStateKey);
+            parent.set(nextStateKey, currentState);
+            move.set(nextStateKey, candidate);
+            queue.push(candidate.state);
+          }
+        }
+      }
+
+      // Reconstruct the path like the Python code
+      const result = [];
+      let current = goal;
+
+      while (parent.get(stateKey(current)) !== null) {
+        const currentKey = stateKey(current);
+
+        result.push({
+          state: current,
+          ...move.get(currentKey)
+        });
+
+        current = parent.get(currentKey);
+      }
+
+      return {
+        start: start,
+        path: result.reverse()
+      };
+    }
+
+    function render(state) {
+      state.forEach((peg, index) => {
+        const target = $("peg-" + index);
+        target.innerHTML = "";
+
+        peg.forEach(disk => {
+          const diskElement = document.createElement("div");
+          diskElement.className = "disk";
+
+          // Larger numbered disks appear wider
+          diskElement.style.width =
+            `${30 + (disk / diskCount) * 62}%`;
+
+          diskElement.title = "Disk " + disk;
+          target.appendChild(diskElement);
+        });
+      });
+    }
+
+    function updateScreen() {
+      const currentState =
+        step === 0 ? initialState : path[step - 1].state;
+
+      render(currentState);
+
+      $("moveCount").textContent = `${step} / ${path.length}`;
+      $("totalTransfers").textContent = path.length;
+
+      if (step === 0) {
+        $("stateLabel").textContent = "Initial state";
+        $("moveMessage").textContent =
+          "The BFS path is ready. Click Next Move to follow it.";
+      } else {
+        const action = path[step - 1];
+
+        $("stateLabel").textContent =
+          step === path.length ? "Goal reached!" : "Searching path";
+
+        $("moveMessage").textContent =
+          `Move ${step}: disk ${action.disk} moved from Storage ` +
+          `${names[action.source]} to Storage ${names[action.destination]}.`;
+
+        if (step === path.length) {
+          $("moveMessage").textContent +=
+            " All disks safely reached Storage C!";
+        }
+      }
+
+      $("nextBtn").disabled = step >= path.length;
+    }
+
+    function startSearch() {
+      const n = Number($("diskCount").value);
+
+      if (!Number.isInteger(n) || n < 1 || n > 8) {
+        $("validation").textContent =
+          "Please enter a whole number from 1 to 8.";
+        return;
+      }
+
+      $("validation").textContent = "";
+      diskCount = n;
+
+      const result = stateSpaceSearch(n);
+
+      initialState = result.start;
+      path = result.path;
+      step = 0;
+
+      $("nextBtn").disabled = false;
+
+      updateScreen();
+    }
+
+    function reset() {
+      let n = Number($("diskCount").value) || 3;
+
+      n = Math.min(8, Math.max(1, n));
+
+      diskCount = n;
+
+      initialState = [
+        Array.from({ length: n }, (_, i) => n - i),
+        [],
+        []
+      ];
+
+      path = [];
+      step = 0;
+
+      render(initialState);
+
+      $("moveCount").textContent = "0 / 0";
+      $("totalTransfers").textContent = "—";
+      $("stateLabel").textContent = "Ready to start";
+      $("moveMessage").textContent =
+        "Choose the number of disks, then start the search.";
+
+      $("nextBtn").disabled = true;
+    }
+
+    $("startBtn").addEventListener("click", startSearch);
+
+    $("nextBtn").addEventListener("click", () => {
+      if (step < path.length) {
+        step++;
+        updateScreen();
+      }
+    });
+
+    $("resetBtn").addEventListener("click", reset);
+
+    reset();
+  </script>
+</body>
+</html>
